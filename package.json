@@ -1,8 +1,8 @@
 {
   "name": "vscode-log-to-gantt",
-  "displayName": "vscode-log-to-gantt",
+  "displayName": "Log to Gantt",
   "description": "Log to Mermaid Gantt Generator",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.101.0"
   },
@@ -31,6 +31,13 @@
         "command": "vscode-log-to-gantt.generateGantt",
         "title": "Generate Mermaid Gantt Chart",
         "category": "Log to Gantt"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "vscode-log-to-gantt.view",
+        "displayName": "Searchable Editor",
+        "selector": [{ "filenamePattern": "*.log" }]
       }
     ]
   },

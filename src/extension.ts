@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as csvParse from 'csv-parse/sync';
+import { SearchEditorProvider } from './searchEditor';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -16,37 +17,45 @@ export function activate(context: vscode.ExtensionContext) {
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('vscode-log-to-gantt.generateGantt', async () => {
-		const uri = await vscode.window.showOpenDialog({
-			filters: { 'CSV Files': ['csv'] },
-			canSelectMany: false
-		});
-
-		if (!uri || uri.length === 0) {
-			vscode.window.showErrorMessage('CSVファイルが選択されていません。');
-		} else {
-			const content = fs.readFileSync(uri[0].fsPath, 'utf-8');
-			const records = csvParse.parse(content, {
-				columns: true,
-				skip_empty_lines: true,
+	context.subscriptions.push(
+		vscode.commands.registerCommand('vscode-log-to-gantt.generateGantt', async () => {
+			const uri = await vscode.window.showOpenDialog({
+				filters: { 'CSV Files': ['csv'] },
+				canSelectMany: false
 			});
 
-			const mermaidCode = generateMermaidGantt(records);
-
-			const editor = vscode.window.activeTextEditor;
-			if (!editor || editor.document.languageId !== 'markdown') {
-				showMermaidWebview(context, mermaidCode);
+			if (!uri || uri.length === 0) {
+				vscode.window.showErrorMessage('CSVファイルが選択されていません。');
 			} else {
-				editor.edit(editBuilder => {
-					const pos = editor.selection.active;
-					editBuilder.insert(pos, '``` mermaid\n' + mermaidCode + '\n```\n');
+				const content = fs.readFileSync(uri[0].fsPath, 'utf-8');
+				const records = csvParse.parse(content, {
+					columns: true,
+					skip_empty_lines: true,
 				});
-				vscode.window.showInformationMessage('Mermaid GanttチャートをMarkdownに挿入しました。');
-			}
-		}
-	});
 
-	context.subscriptions.push(disposable);
+				const mermaidCode = generateMermaidGantt(records);
+
+				const editor = vscode.window.activeTextEditor;
+				if (!editor || editor.document.languageId !== 'markdown') {
+					showMermaidWebview(context, uri[0].fsPath, mermaidCode);
+				} else {
+					editor.edit(editBuilder => {
+						const pos = editor.selection.active;
+						editBuilder.insert(pos, '``` mermaid\n' + mermaidCode + '\n```\n');
+					});
+					vscode.window.showInformationMessage('Mermaid GanttチャートをMarkdownに挿入しました。');
+				}
+			}
+		})
+	);
+
+	context.subscriptions.push(
+		vscode.window.registerCustomEditorProvider(
+			'vscode-log-to-gantt.view',
+			new SearchEditorProvider(context),
+			{ webviewOptions: { retainContextWhenHidden: true } }
+		)
+	);
 }
 
 // This method is called when your extension is deactivated
@@ -60,10 +69,10 @@ function generateMermaidGantt(data: any[]): string {
 	return lines.join('\n');
 }
 
-function showMermaidWebview(context: vscode.ExtensionContext, mermaidCode: string) {
+function showMermaidWebview(context: vscode.ExtensionContext, title: string, mermaidCode: string) {
   const panel = vscode.window.createWebviewPanel(
     'ganttChart',
-    'Mermaid Gantt Preview',
+    title || 'Mermaid Gantt Preview',
     vscode.ViewColumn.One,
     {
       enableScripts: true,
