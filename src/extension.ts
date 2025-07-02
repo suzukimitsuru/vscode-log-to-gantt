@@ -1,10 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import * as fs from 'fs';
+import { getWebviewContent } from './webview';
 import * as path from 'path';
-import * as csvParse from 'csv-parse/sync';
-import { SearchEditorProvider } from './searchEditor';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -18,89 +16,28 @@ export function activate(context: vscode.ExtensionContext) {
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
 	context.subscriptions.push(
-		vscode.commands.registerCommand('vscode-log-to-gantt.generateGantt', async () => {
-			const uri = await vscode.window.showOpenDialog({
-				filters: { 'CSV Files': ['csv'] },
-				canSelectMany: false
-			});
+		vscode.commands.registerCommand('vscode-log-to-gantt.showGantt', async () => {
+			const editor = vscode.window.activeTextEditor;
+			if (editor) {
+				const doc = editor.document;
+				const panel = vscode.window.createWebviewPanel(
+					'logToGantt',
+					`Gantt ${path.basename(doc.fileName)}`,
+					vscode.ViewColumn.One,
+					{
+					enableScripts: true,
+					retainContextWhenHidden: true,
+					}
+				);
 
-			if (!uri || uri.length === 0) {
-				vscode.window.showErrorMessage('CSVファイルが選択されていません。');
-			} else {
-				const content = fs.readFileSync(uri[0].fsPath, 'utf-8');
-				const records = csvParse.parse(content, {
-					columns: true,
-					skip_empty_lines: true,
-				});
-
-				const mermaidCode = generateMermaidGantt(records);
-
-				const editor = vscode.window.activeTextEditor;
-				if (!editor || editor.document.languageId !== 'markdown') {
-					showMermaidWebview(context, uri[0].fsPath, mermaidCode);
-				} else {
-					editor.edit(editBuilder => {
-						const pos = editor.selection.active;
-						editBuilder.insert(pos, '``` mermaid\n' + mermaidCode + '\n```\n');
-					});
-					vscode.window.showInformationMessage('Mermaid GanttチャートをMarkdownに挿入しました。');
-				}
+				const theme = vscode.window.activeColorTheme.kind;
+				const content = doc.getText();
+				panel.webview.html = getWebviewContent(panel.webview, context.extensionUri, content, theme);
 			}
 		})
-	);
-
-	context.subscriptions.push(
-		vscode.window.registerCustomEditorProvider(
-			'vscode-log-to-gantt.view',
-			new SearchEditorProvider(context),
-			{ webviewOptions: { retainContextWhenHidden: true } }
-		)
 	);
 }
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
 
-function generateMermaidGantt(data: any[]): string {
-	const lines = ['gantt', '    title Gantt Chart', '    dateFormat  YYYY-MM-DD'];
-	for (const row of data) {
-		lines.push(`    ${row.task} : ${row.id}, ${row.start}, ${row.duration}`);
-	}
-	return lines.join('\n');
-}
-
-function showMermaidWebview(context: vscode.ExtensionContext, title: string, mermaidCode: string) {
-  const panel = vscode.window.createWebviewPanel(
-    'ganttChart',
-    title || 'Mermaid Gantt Preview',
-    vscode.ViewColumn.One,
-    {
-      enableScripts: true,
-      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')]
-    }
-  );
-
-  const mermaidPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'mermaid.min.js');
-  const mermaidSrc = panel.webview.asWebviewUri(mermaidPath);
-
-  panel.webview.html = getWebviewContent(mermaidCode, mermaidSrc.toString());
-}
-
-function getWebviewContent(mermaidCode: string, mermaidJsUri: string): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Mermaid Gantt Chart</title>
-</head>
-<body>
-  <div class="mermaid">
-    ${mermaidCode}
-  </div>
-  <script src="${mermaidJsUri}"></script>
-  <script>
-    mermaid.initialize({ startOnLoad: true });
-  </script>
-</body>
-</html>`;
-}

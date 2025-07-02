@@ -1,106 +1,71 @@
-const vscode = acquireVsCodeApi();
-const editor = document.getElementById('editor');
-const input = document.getElementById('searchInput');
+document.getElementById('generate').onclick = async () => {
+  mermaid.initialize({ startOnLoad: false });
 
-const caseBtn = document.getElementById('caseBtn');
-const wordBtn = document.getElementById('wordBtn');
-const regexBtn = document.getElementById('regexBtn');
+  const sectionRe = new RegExp(document.getElementById('section').value, 'i');
+  const milestoneLabel = document.getElementById('milestoneLabel').value;
+  const milestoneRe = new RegExp(document.getElementById('milestone').value, 'i');
+  const startRe = new RegExp(document.getElementById('start').value, 'i');
+  const endRe = new RegExp(document.getElementById('end').value, 'i');
 
-let isCaseSensitive = false;
-let isRegex = false;
-let matchWholeWord = false;
+  const lines = log.split(/\r?\n/);
+  const tasks = {};
 
-let matches = [];
-let currentIndex = -1;
-
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function updateEditorHighlight(text) {
-  let search = input.value;
-  if (!search) {
-    editor.innerHTML = text;
-    matches = [];
-    return;
-  }
-
-  let flags = isCaseSensitive ? 'g' : 'gi';
-  let pattern = search;
-
-  if (!isRegex) {
-    pattern = escapeRegex(pattern);
-  }
-  if (matchWholeWord) {
-    pattern = `\\b${pattern}\\b`;
-  }
-
-  try {
-    const regex = new RegExp(pattern, flags);
-    let result = '';
-    let lastIndex = 0;
-    matches = [];
-
-    for (const match of text.matchAll(regex)) {
-      matches.push(match.index);
-      result += text.slice(lastIndex, match.index);
-      result += `<mark>${match[0]}</mark>`;
-      lastIndex = match.index + match[0].length;
+  function parseTime(text) {
+    let time = null;
+    const match = text.match(/\b(\d{1,2}):(\d{2}):(\d{2})\b/);
+    if (match) {
+      time = `${match[2].padStart(2, '0')}:${match[3]}`;
     }
-    result += text.slice(lastIndex);
-    editor.innerHTML = result;
-  } catch (e) {
-    editor.innerHTML = text; // fallback
-    matches = [];
+    return time;
   }
-}
 
-function findNext() {
-  if (matches.length === 0) return;
-  currentIndex = (currentIndex + 1) % matches.length;
-  scrollToMatch();
-}
+  for (const line of lines) {
+    const time = parseTime(line);
+    if (time) {
+      const sectionMatch = line.match(sectionRe);
+      const section = sectionMatch?.[0].trim();
+      if (section) {
+        if (!tasks[section]) { tasks[section] = { label: section, milestones: [], bars: {} }; }
 
-function findPrev() {
-  if (matches.length === 0) return;
-  currentIndex = (currentIndex - 1 + matches.length) % matches.length;
-  scrollToMatch();
-}
-
-function scrollToMatch() {
-  const marks = document.querySelectorAll('mark');
-  if (marks[currentIndex]) {
-    marks[currentIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (milestoneRe.test(line)) {
+          tasks[section].milestones.push({ label: milestoneLabel, time });
+        }
+        if (startRe.test(line)) {
+          tasks[section].bars.start = time;
+        }
+        if (endRe.test(line)) {
+          tasks[section].bars.end = time;
+        }
+      }
+    }
   }
-}
 
-input.addEventListener('input', () => updateEditorHighlight(editor.innerText));
-editor.addEventListener('input', () => {
-  vscode.postMessage({ type: 'edit', text: editor.innerText });
-  updateEditorHighlight(editor.innerText);
-});
+  let chart = `gantt\ntitle Gantt Chart\ndateFormat  HH:mm\naxisFormat %H:%M\n\n`;
+  for (const task of Object.values(tasks)) {
+    chart += `section ${task.label}\n`;
+    for (const m of task.milestones) {
+      chart += `  ${m.label} :milestone, stone, ${m.time}, 0m\n`;
+    }
+    if (task.bars.start && task.bars.end) {
+      chart += `  ${task.label.replace(/[^a-zA-Z0-9]/g, '')}: bar, ${task.bars.start}, ${task.bars.end}\n`;
+    }
+  }
+  const chartEl = document.getElementById('chart');
+  const errorEl = document.getElementById('error');
+  try {
+    // Mermaid構文チェック（ここで例外が投げられる）
 
-// オプションボタン切替
-function toggleOption(btn, prop) {
-  btn.classList.toggle('active');
-  window[prop] = !window[prop];
-  updateEditorHighlight(editor.innerText);
-}
+    mermaid.parse(chart);
+    chartEl.textContent = chart;
+    errorEl.textContent = ''; // エラー消去
+    //mermaid.init(undefined, chartEl);
+    await mermaid.run({ nodes: [chartEl] });
+  } catch (err) {
+    container.textContent = ''; // 描画キャンセル
+    errorEl.textContent = `Mermaid 構文エラー:\n${err.message || String(err)}`;
+  }
+};
 
-caseBtn.addEventListener('click', () => {
-  isCaseSensitive = !isCaseSensitive;
-  toggleOption(caseBtn, 'isCaseSensitive');
-});
-wordBtn.addEventListener('click', () => {
-  matchWholeWord = !matchWholeWord;
-  toggleOption(wordBtn, 'matchWholeWord');
-});
-regexBtn.addEventListener('click', () => {
-  isRegex = !isRegex;
-  toggleOption(regexBtn, 'isRegex');
-});
-
-window.onload = () => {
-  editor.innerText = window.initialText;
-  updateEditorHighlight(window.initialText);
+document.getElementById('copy').onclick = () => {
+  navigator.clipboard.writeText(document.getElementById('chart').textContent);
 };
