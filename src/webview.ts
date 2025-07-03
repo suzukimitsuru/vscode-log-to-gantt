@@ -21,14 +21,14 @@ export function getWebviewContent(webview: Webview, extensionUri: Uri, logFileno
     <label>マイルストーン: <input type="text" id="milestone" value="TASK:[0-9]* -- receive"></label>
     <label>開始: <input type="text" id="start" value="TASK:[0-9]* -- start"></label>
     <label>終了: <input type="text" id="end" value="TASK:[0-9]* -- finish"></label>
-    <button id="generate"><span class="codicon codicon-search" alt="Search"></span></button>
-    <button id="copy"><span class="codicon codicon-copy" alt="Copy"></button>
+    <button id="search" title="Search"><span class="codicon codicon-search"></span></button>
+    <button id="copy" title="Copy"><span class="codicon codicon-copy"></button>
   </div>
   <div id="error" class="error"></div>
   <div class="mermaid" id="chart"></div>
   <script>
-    const log = \`${logContent.replace(/`/g, '\\`')}\`;
-    const filename = '${logFilenode}';
+    const logContent = \`${logContent.replace(/`/g, '\\`')}\`;
+    const logFilename = '${logFilenode}';
   </script>
   <script src="${scriptUri}"></script>
 </body>

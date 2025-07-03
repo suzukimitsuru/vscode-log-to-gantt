@@ -40,6 +40,13 @@
           "when": "resourceExtname == .log",
           "group": "navigation"
         }
+      ],
+      "explorer/context": [
+        {
+          "command": "vscode-log-to-gantt.showGantt",
+          "when": "resourceExtname == .log",
+          "group": "navigation@2"
+        }
       ]
     }
   },

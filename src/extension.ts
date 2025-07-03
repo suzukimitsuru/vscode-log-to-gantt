@@ -15,25 +15,40 @@ export function activate(context: vscode.ExtensionContext) {
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
-	context.subscriptions.push(
-		vscode.commands.registerCommand('vscode-log-to-gantt.showGantt', async () => {
-			const editor = vscode.window.activeTextEditor;
-			if (editor) {
-				const doc = editor.document;
-				const filenode = path.basename(doc.fileName);
-				const panel = vscode.window.createWebviewPanel(
-					'logToGantt',
-					`Gantt ${filenode}`,
-					vscode.ViewColumn.One,
-					{
-					enableScripts: true,
-					retainContextWhenHidden: true,
-					}
-				);
+	let panel: vscode.WebviewPanel | undefined;
 
+	context.subscriptions.push(vscode.commands.registerCommand('vscode-log-to-gantt.showGantt', async (uri?: vscode.Uri) => {
+			let doc: vscode.TextDocument | undefined;
+			if (uri) {
+				// エクスプローラーから起動時
+				doc = await vscode.workspace.openTextDocument(uri);
+				await vscode.window.showTextDocument(doc, { preview: false });
+			} else {
+				// エディタから起動時
+				doc = vscode.window.activeTextEditor?.document;
+			}
+			if (doc) {
+				const filenode = path.basename(doc.fileName);
 				const theme = vscode.window.activeColorTheme.kind;
 				const content = doc.getText();
-				panel.webview.html = getWebviewContent(panel.webview, context.extensionUri, filenode, content, theme);
+
+				if (panel) {
+					panel.title = `Gantt ${filenode}`;
+					panel.webview.html = getWebviewContent(panel.webview, context.extensionUri, filenode, content, theme);
+					panel.reveal();
+				} else {
+					panel = vscode.window.createWebviewPanel(
+						'logToGantt',
+						`Gantt ${filenode}`,
+						vscode.ViewColumn.One,
+						{
+							enableScripts: true,
+							retainContextWhenHidden: true,
+						}
+					);
+					panel.webview.html = getWebviewContent(panel.webview, context.extensionUri, filenode, content, theme);
+					panel.onDidDispose(() => { panel = undefined; }, null, context.subscriptions);
+				}
 			}
 		})
 	);
