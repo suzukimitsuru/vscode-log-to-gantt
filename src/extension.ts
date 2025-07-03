@@ -20,9 +20,10 @@ export function activate(context: vscode.ExtensionContext) {
 			const editor = vscode.window.activeTextEditor;
 			if (editor) {
 				const doc = editor.document;
+				const filenode = path.basename(doc.fileName);
 				const panel = vscode.window.createWebviewPanel(
 					'logToGantt',
-					`Gantt ${path.basename(doc.fileName)}`,
+					`Gantt ${filenode}`,
 					vscode.ViewColumn.One,
 					{
 					enableScripts: true,
@@ -32,7 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 				const theme = vscode.window.activeColorTheme.kind;
 				const content = doc.getText();
-				panel.webview.html = getWebviewContent(panel.webview, context.extensionUri, content, theme);
+				panel.webview.html = getWebviewContent(panel.webview, context.extensionUri, filenode, content, theme);
 			}
 		})
 	);

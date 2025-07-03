@@ -18,6 +18,16 @@ body {
   font-size: small;
 }
 
+input[type="text"] {
+  font-family: var(--vscode-font-family);
+  font-size: small;
+  padding: 5px;
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+}
+
 button {
   background-color: var(--vscode-button-background);
   color: var(--vscode-button-foreground);

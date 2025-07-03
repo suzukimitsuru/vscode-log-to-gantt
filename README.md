@@ -30,7 +30,9 @@
         TASK2: bar, 00:10, 00:30
   ```
 
-## Spec
+## Specification
+
+### ChatGPT(GPT‑4o)にベースを作っていただきました
 
 ログファイルから正規表現で指定した行の時間を使って、mermaidのganttを表示するソフトを作って下さい。
 
@@ -43,7 +45,7 @@
   - ボタンには、VSCodeのアイコンを表示する事。
 - 操作方法
   - a) VSCodeでMarkdownのプレビューと同じで、ログファイルを右クリックしたメニューの'Log to Gantt'を選択する
-  - b) タイトル'Gantt ログファイル名'の vscode.WebviewPanel を表示する。
+  - b) タイトル'Gantt ログファイル名'の'vscode.WebviewPanel'を表示する。
   - c) 検索条件を入力して、表示ボタンを押す。
   - d) mermaidのganttをレンダリングして表示する。
   - e) mermaidのエラーは文字列で表示する。

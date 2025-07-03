@@ -1,6 +1,15 @@
-document.getElementById('generate').onclick = async () => {
-  mermaid.initialize({ startOnLoad: false });
+// Mermaid初期化は一度だけ
+let lastMermaidCode = '';
 
+function getMermaidTheme() {
+  // Webviewの<html data-theme="...">属性を参照
+  const theme = document.documentElement.getAttribute('data-theme');
+  // VSCodeのtheme kind: 1=Light, 2=Dark, 3=HighContrast
+  return (theme === '2' || theme === '3') ? 'dark' : 'default';
+}
+mermaid.initialize({ startOnLoad: false, theme: getMermaidTheme() });
+
+document.getElementById('generate').onclick = async () => {
   const sectionRe = new RegExp(document.getElementById('section').value, 'i');
   const milestoneLabel = document.getElementById('milestoneLabel').value;
   const milestoneRe = new RegExp(document.getElementById('milestone').value, 'i');
@@ -12,60 +21,80 @@ document.getElementById('generate').onclick = async () => {
 
   function parseTime(text) {
     let time = null;
-    const match = text.match(/\b(\d{1,2}):(\d{2}):(\d{2})\b/);
+    const match = text.match(/(\d{1,2}):(\d{2}):(\d{2})/);
     if (match) {
-      time = `${match[2].padStart(2, '0')}:${match[3]}`;
+      // 時刻を秒単位に変換
+      const h = parseInt(match[1], 10);
+      const m = parseInt(match[2], 10);
+      const s = parseInt(match[3], 10);
+      time = (((h * 60) + m) * 60) + s ;
     }
     return time;
   }
 
-  for (const line of lines) {
-    const time = parseTime(line);
-    if (time) {
-      const sectionMatch = line.match(sectionRe);
+  let start_time = null;
+  for (const line_text of lines) {
+    const line_time = parseTime(line_text);
+    if (line_time) {
+      const sectionMatch = line_text.match(sectionRe);
       const section = sectionMatch?.[0].trim();
       if (section) {
         if (!tasks[section]) { tasks[section] = { label: section, milestones: [], bars: {} }; }
+        start_time = start_time || line_time; // 最初の時間を基準にする
 
-        if (milestoneRe.test(line)) {
-          tasks[section].milestones.push({ label: milestoneLabel, time });
+        if (milestoneRe.test(line_text)) {
+          tasks[section].milestones.push({ label: milestoneLabel, time: line_time });
         }
-        if (startRe.test(line)) {
-          tasks[section].bars.start = time;
+        if (startRe.test(line_text)) {
+          tasks[section].bars.start = line_time;
         }
-        if (endRe.test(line)) {
-          tasks[section].bars.end = time;
+        if (endRe.test(line_text)) {
+          tasks[section].bars.end = line_time;
         }
       }
     }
   }
 
-  let chart = `gantt\ntitle Gantt Chart\ndateFormat  HH:mm\naxisFormat %H:%M\n\n`;
+  // 時刻を`HH:mm`形式に変換
+  function timeToHHmm(minutes) {
+    const h = Math.floor(minutes / 60);
+    const m = Math.floor(minutes % 60);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  }
+
+  let chart = `gantt\ntitle ${filename}\ndateFormat HH:mm\naxisFormat %H:%M\ntodayMarker off\n\n`;
   for (const task of Object.values(tasks)) {
     chart += `section ${task.label}\n`;
     for (const m of task.milestones) {
-      chart += `  ${m.label} :milestone, stone, ${m.time}, 0m\n`;
+      if (start_time) {
+        const rel = timeToHHmm(m.time - start_time);
+        chart += `  ${m.label}: milestone, ${rel}, 0m\n`;
+      }
     }
-    if (task.bars.start && task.bars.end) {
-      chart += `  ${task.label.replace(/[^a-zA-Z0-9]/g, '')}: bar, ${task.bars.start}, ${task.bars.end}\n`;
+    if (task.bars.start && task.bars.end && start_time) {
+      const relStart = timeToHHmm(task.bars.start - start_time);
+      const relEnd = timeToHHmm(task.bars.end - start_time);
+      chart += `  ${task.label.replace(/[^a-zA-Z0-9]/g, '')}: ${relStart}, ${relEnd}\n`;
     }
   }
+  // 最後に生成したMermaidコードを保存
+  lastMermaidCode = chart;
+
   const chartEl = document.getElementById('chart');
   const errorEl = document.getElementById('error');
   try {
     // Mermaid構文チェック（ここで例外が投げられる）
-
     mermaid.parse(chart);
+    chartEl.innerHTML = '';
     chartEl.textContent = chart;
     errorEl.textContent = ''; // エラー消去
-    //mermaid.init(undefined, chartEl);
     await mermaid.run({ nodes: [chartEl] });
   } catch (err) {
-    container.textContent = ''; // 描画キャンセル
-    errorEl.textContent = `Mermaid 構文エラー:\n${err.message || String(err)}`;
+    chartEl.innerHTML = chart.replace(/¥n/g, '<br />').replace(/</g, '&lt;').replace(/>/g, '&gt;'); // HTMLエスケープ;
+    errorEl.textContent = `Mermaid Syntax error:\n${JSON.stringify(err) || String(err)}`;
   }
 };
 
 document.getElementById('copy').onclick = () => {
-  navigator.clipboard.writeText(document.getElementById('chart').textContent);
+  navigator.clipboard.writeText(lastMermaidCode);
 };

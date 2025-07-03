@@ -6,4 +6,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
-- Initial release
+## [0.0.4] - 2025-07-03
+
+- ログファイルの選択を別のファイルに変更した場合、同じ'vscode.WebviewPanel'で、検索対象とタイトル表示のみ変更する。
+- 時間軸は分秒を時分として表示しているため、`00:23:59`を超えると不正な時刻になる。
+  - このため、時間軸を開始時刻からの経過時刻にする。
+
+## [0.0.3] - 2025-07-02
+
+- alpha release
