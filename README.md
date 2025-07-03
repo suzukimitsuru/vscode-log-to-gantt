@@ -18,21 +18,25 @@
 
   ``` mermaid
   gantt
-      title Gantt Chart
-      dateFormat  HH:mm
-      axisFormat %H:%M
+  title exsample2.log
+  dateFormat HH:mm
+  axisFormat %H:%M
+  todayMarker off
 
-      section TASK:1
-        Receive :milestone, stone, 00:00, 0m
-        TASK1: bar, 00:20, 00:25
-      section TASK:2
-        Receive :milestone, stone, 00:01, 0m
-        TASK2: bar, 00:10, 00:30
+  section TASK:1
+    Receive: milestone, 00:00, 0m
+    TASK1: 00:04, 00:05
+  section TASK:2
+    Receive: milestone, 00:01, 0m
+    TASK2: 00:02, 00:03
   ```
 
 ## Specification
 
-### ChatGPT(GPT‑4o)にベースを作っていただきました
+[最初の仕様](#最初の仕様)で、`ChatGPT(GPT‑4o)`にベースを作っていただきました。  
+その後、`GitHub Copilot`に訊きながら仕上げました。  
+
+### 最初の仕様
 
 ログファイルから正規表現で指定した行の時間を使って、mermaidのganttを表示するソフトを作って下さい。
 
@@ -54,12 +58,12 @@
   - 日時は行の最初にあり、様々な形式に対応する事。
 
   ``` log
-  Jul 2 10:00:00 TASK:1 -- receive
-  Jul 2 10:00:01 TASK:2 -- receive
-  Jul 2 10:00:10 TASK:2 -- start
-  Jul 2 10:00:20 TASK:1 -- start
-  Jul 2 10:00:25 TASK:1 -- finish
-  Jul 2 10:00:30 TASK:2 -- finish
+  2025-07-02T23:59:00.175 TASK:1 -- receive
+  2025-07-02T23:59:01.175 TASK:2 -- receive
+  2025-07-02T23:59:02.175 TASK:2 -- start
+  2025-07-02T23:59:03.175 TASK:2 -- finish
+  2025-07-02T23:59:04.175 TASK:1 -- start
+  2025-07-02T23:59:05.175 TASK:1 -- finish
   ```
 
 - 検索条件
