@@ -58,12 +58,12 @@
   - 日時は行の最初にあり、様々な形式に対応する事。
 
   ``` log
-  2025-07-02T23:59:00.175 TASK:1 -- receive
-  2025-07-02T23:59:01.175 TASK:2 -- receive
-  2025-07-02T23:59:02.175 TASK:2 -- start
-  2025-07-02T23:59:03.175 TASK:2 -- finish
-  2025-07-02T23:59:04.175 TASK:1 -- start
-  2025-07-02T23:59:05.175 TASK:1 -- finish
+  Jul 2 10:00:00 TASK:1 -- receive
+  Jul 2 10:00:01 TASK:2 -- receive
+  Jul 2 10:00:10 TASK:2 -- start
+  Jul 2 10:00:20 TASK:1 -- start
+  Jul 2 10:00:25 TASK:1 -- finish
+  Jul 2 10:00:30 TASK:2 -- finish
   ```
 
 - 検索条件
