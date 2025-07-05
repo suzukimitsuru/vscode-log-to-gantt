@@ -1,6 +1,6 @@
 import { Webview, Uri } from 'vscode';
 
-export function getWebviewContent(webview: Webview, extensionUri: Uri, logFilenode: string, logContent: string, theme: number): string {
+export function getWebviewContent(webview: Webview, extensionUri: Uri, theme: number): string {
     const mermaidPath = webview.asWebviewUri(Uri.joinPath(extensionUri, 'media', 'mermaid.min.js'));
     const codiconsUri = webview.asWebviewUri(Uri.joinPath(extensionUri, 'media', 'vscode-codicons.css'));
     const styleUri = webview.asWebviewUri(Uri.joinPath(extensionUri, 'media', 'style.css'));
@@ -16,19 +16,18 @@ export function getWebviewContent(webview: Webview, extensionUri: Uri, logFileno
 </head>
 <body>
   <div class="controls">
-    <label>セクション: <input type="text" id="section" value="TASK:[0-9]* "></label>
-    <label>マイルストーン名: <input type="text" id="milestoneLabel" value="Receive"></label>
-    <label>マイルストーン: <input type="text" id="milestone" value="TASK:[0-9]* -- receive"></label>
-    <label>開始: <input type="text" id="start" value="TASK:[0-9]* -- start"></label>
-    <label>終了: <input type="text" id="end" value="TASK:[0-9]* -- finish"></label>
+    <label>section: <input type="text" id="regexp-section" value="TASK:[0-9]* "></label>
+    <label>milestone: <input type="text" id="regexp-milestone" value="TASK:[0-9]* -- receive"></label>
+    <label>bar: <input type="text" id="regexp-bar" value="TASK:[0-9]* -- (start|finish)"></label>
+    <label>name: <input type="text" id="regexp-name" value=".*title: (.*)"></label>
     <button id="search" title="Search"><span class="codicon codicon-search"></span></button>
     <button id="copy" title="Copy"><span class="codicon codicon-copy"></button>
   </div>
   <div id="error" class="error"></div>
   <div class="mermaid" id="chart"></div>
   <script>
-    const logContent = \`${logContent.replace(/`/g, '\\`')}\`;
-    const logFilename = '${logFilenode}';
+    let logContent = '';
+    let logFilename = '';
   </script>
   <script src="${scriptUri}"></script>
 </body>

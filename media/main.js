@@ -1,22 +1,36 @@
-function getMermaidTheme() {
-  // Webviewの<html data-theme="...">属性を参照
-  const theme = document.documentElement.getAttribute('data-theme');
-  // VSCodeのtheme kind: 1=Light, 2=Dark, 3=HighContrast
-  return (theme === '2' || theme === '3') ? 'dark' : 'default';
-}
+const vscode = acquireVsCodeApi();
+window.addEventListener('DOMContentLoaded', () => {
+  vscode.postMessage({ command: 'ready' });
+});
 
 // Mermaid初期化は一度だけ
 let lastMermaidCode = '';
-mermaid.initialize({ startOnLoad: false, theme: getMermaidTheme() });
+
+// メッセージを受け取る
+window.addEventListener("message", (event) => {
+  switch (event.data.command) {
+    case 'update':
+      logFilename = event.data.filename;
+      logContent = event.data.content.replace(/`/g, '\\`');
+      vscode.postMessage({ command: 'debug', line: 'update: ' + logContent.length + ' bytes' });
+      break;
+    case 'theme':
+      // themeKind: 1=Light, 2=Dark, 3=HighContrast
+      const theme = (event.data.kind === 2 || event.data.kind === 3) ? 'dark' : 'default';
+      mermaid.initialize({ startOnLoad: false, theme });
+      break;
+  }
+});
+vscode.postMessage({ command: 'ready' });
 
 document.getElementById('search').onclick = async () => {
-  const sectionRe = new RegExp(document.getElementById('section').value, 'i');
-  const milestoneLabel = document.getElementById('milestoneLabel').value;
-  const milestoneRe = new RegExp(document.getElementById('milestone').value, 'i');
-  const startRe = new RegExp(document.getElementById('start').value, 'i');
-  const endRe = new RegExp(document.getElementById('end').value, 'i');
+  const sectionRe = new RegExp(document.getElementById('regexp-section').value, 'i');
+  const milestoneRe = new RegExp(document.getElementById('regexp-milestone').value, 'i');
+  const barRe = new RegExp(document.getElementById('regexp-bar').value, 'i');
+  const nameRe = new RegExp(document.getElementById('regexp-name').value, 'i');
 
   const lines = logContent.split(/\r?\n/);
+  vscode.postMessage({ command: 'debug', line: 'search: ' + logContent.length + ' bytes' });
   const tasks = {};
 
   function parseTime(text) {
@@ -32,6 +46,7 @@ document.getElementById('search').onclick = async () => {
     return time;
   }
 
+  // ログを解析
   let start_time = null;
   for (const line_text of lines) {
     const line_time = parseTime(line_text);
@@ -39,17 +54,19 @@ document.getElementById('search').onclick = async () => {
       const sectionMatch = line_text.match(sectionRe);
       const section = sectionMatch?.[0].trim();
       if (section) {
-        if (!tasks[section]) { tasks[section] = { label: section, milestones: [], bars: {} }; }
+        if (!tasks[section]) { tasks[section] = { label: section, milestones: [], bars: { name: section } }; }
         start_time = start_time || line_time; // 最初の時間を基準にする
 
         if (milestoneRe.test(line_text)) {
-          tasks[section].milestones.push({ label: milestoneLabel, time: line_time });
+          tasks[section].milestones.push({ time: line_time });
         }
-        if (startRe.test(line_text)) {
-          tasks[section].bars.start = line_time;
+        if (barRe.test(line_text)) {
+          tasks[section].bars.start = tasks[section].bars.start ? (line_time < tasks[section].bars.start ? line_time : tasks[section].bars.start) : line_time;
+          tasks[section].bars.end = tasks[section].bars.end ? (tasks[section].bars.end < line_time ? line_time : tasks[section].bars.end) : line_time;
         }
-        if (endRe.test(line_text)) {
-          tasks[section].bars.end = line_time;
+        const name_match = line_text.match(nameRe);
+        if (name_match && name_match.length > 1) {
+          tasks[section].bars.name = name_match[1];
         }
       }
     }
@@ -62,19 +79,20 @@ document.getElementById('search').onclick = async () => {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
   }
   
-  let chart = `gantt\ntitle ${logFilename}\ndateFormat HH:mm\naxisFormat %H:%M\ntodayMarker off\n\n`;
+  // Mermaid Ganttを生成
+  let chart = `gantt\n  title ${logFilename}\n  dateFormat HH:mm\n  axisFormat %H:%M\n  todayMarker off\n\n`;
   for (const task of Object.values(tasks)) {
-    chart += `section ${task.label}\n`;
-    for (const m of task.milestones) {
+    chart += `  section ${task.label.replace(/[,:]/g, ' ')}\n`;
+    for (const milestone of task.milestones) {
       if (start_time) {
-        const rel = timeToHHmm(m.time - start_time);
-        chart += `  ${m.label}: milestone, ${rel}, 0m\n`;
+        const rel = timeToHHmm(milestone.time - start_time);
+        chart += `    +: milestone, ${rel}, 0m\n`;
       }
     }
     if (task.bars.start && task.bars.end && start_time) {
       const relStart = timeToHHmm(task.bars.start - start_time);
       const relEnd = timeToHHmm(task.bars.end - start_time);
-      chart += `  ${task.label.replace(/[^a-zA-Z0-9]/g, '')}: ${relStart}, ${relEnd}\n`;
+      chart += `    ${task.bars.name.replace(/[,:]/g, ' ')}: ${relStart}, ${relEnd}\n`;
     }
   }
   // 最後に生成したMermaidコードを保存

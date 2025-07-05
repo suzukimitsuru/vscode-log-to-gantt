@@ -6,6 +6,13 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [1.0.0] - 2025-07-05 Official release
+
+- ログファイルを切り替える度に、Ganttパネルの内容を更新する。
+- 検索条件の精査
+  - バーの開始と終了を１つにまとめる。
+  - タイトルの条件を追加する。
+
 ## [0.0.4] - 2025-07-03
 
 - ログファイルの選択を別のファイルに変更した場合、同じ'vscode.WebviewPanel'で、検索対象とタイトル表示のみ変更する。

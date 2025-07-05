@@ -4,32 +4,48 @@
 
 ## Features
 
-### 1.CSVファイルからガントチャートを生成する
+![Screen shot](screen_shot.png)
 
-- a) ログファイルの中で右クリックし、メニューの'Log to Gantt'を選択する。
-- b) 検索条件を入力して、表示ボタンを押す。
-  - セクション検索: セクション名を検索する正規表現を入力 例) 'TASK:[0-9]* '
-  - マイルストーン表示: マイルストーンの名称を入力 例) 'Receive'
-  - マイルストーン検索: マイルストーンの行を検索する正規表現を入力 例) 'TASK:[0-9]* -- receive'
-  - タスク開始検索: タスクを開始する行を検索する正規表現を入力 例) 'TASK:[0-9]* -- start'
-  - タスク終了検索: タスクを終了する行を検索する正規表現を入力 例) 'TASK:[0-9]* -- finish'
-- c) `Mermaid`でガントチャートチャートをレンダリングして表示する。
+- a) ログファイルを右クリックし、メニューの'Log to Gantt'を選択する。
+- b) 検索条件を入力して、検索ボタンを押す。
+  - section: セクション名を検索する正規表現を入力 例) 'TASK:[0-9]* '
+  - milestone: マイルストーンの行を検索する正規表現を入力 例) 'TASK:[0-9]* -- receive'
+  - bar: バーの処理行を検索する正規表現を入力 例) 'TASK:[0-9]* -- (start|finish)'
+  - name: バーの名前を検索する正規表現を入力(表示する場所を括弧で囲う) 例) '.*title: (.*)'
+- c) 神作ボタンを押すと、ガントチャートチャートをレンダリングして表示する。
 - d) コピーボタンを押すと、ガントチャートチャートをテキストで、クリップボードにコピーする。
 
-  ``` mermaid
-  gantt
-  title exsample2.log
+``` log
+Jul 2 23:59:00 TASK:1 -- receive title: 通常タスク
+Jul 2 23:59:01 TASK:2 -- receive title: 優先タスク
+Jul 2 23:59:02 TASK:2 -- start
+Jul 2 23:59:03 TASK:2 info: information message.
+Jul 2 23:59:04 TASK:1 -- start
+Jul 2 23:59:05 TASK:2 -- finish
+Jul 2 23:59:06 TASK:1 debug: debug message.
+Jul 2 23:59:07 TASK:1 -- finish
+```
+
+``` mermaid
+gantt
+  title exsample1.log
   dateFormat HH:mm
   axisFormat %H:%M
   todayMarker off
 
-  section TASK:1
-    Receive: milestone, 00:00, 0m
-    TASK1: 00:04, 00:05
-  section TASK:2
-    Receive: milestone, 00:01, 0m
-    TASK2: 00:02, 00:03
-  ```
+  section TASK 1
+    +: milestone, 00:00, 0m
+    通常タスク: 00:04, 00:07
+  section TASK 2
+    +: milestone, 00:01, 0m
+    優先タスク: 00:02, 00:05
+```
+
+## Requirements
+
+`Visual Studio Code`拡張機能をインストールして下さい。
+
+- [Markdown Preview Mermaid Support / Matt Bierner](https://marketplace.visualstudio.com/items?itemName=bierner.markdown-mermaid)
 
 ## Specification
 
@@ -90,32 +106,3 @@
         Receive :milestone, stone, 00:01, 0m
         TASK2: bar, 00:10, 00:30
   ```
-
-## Requirements
-
-`Visual Studio Code`拡張機能をインストールして下さい。
-
-- [Markdown Preview Mermaid Support / Matt Bierner](https://marketplace.visualstudio.com/items?itemName=bierner.markdown-mermaid)
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-- [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-- Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-- Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-- Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-- [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-- [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**

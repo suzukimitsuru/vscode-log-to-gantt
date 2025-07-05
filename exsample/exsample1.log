@@ -1,6 +1,8 @@
-Jul 2 23:59:00 TASK:1 -- receive
-Jul 2 23:59:01 TASK:2 -- receive
-Jul 2 23:59:10.037 TASK:2 -- start
-Jul 2 23:59:20 TASK:1 -- start
-Jul 2 23:59:25 TASK:1 -- finish
-Jul 2 23:59:30 TASK:2 -- finish
+Jul 2 23:59:00 TASK:1 -- receive title: 通常タスク
+Jul 2 23:59:01 TASK:2 -- receive title: 優先タスク
+Jul 2 23:59:02 TASK:2 -- start
+Jul 2 23:59:03 TASK:2 info: information message.
+Jul 2 23:59:04 TASK:1 -- start
+Jul 2 23:59:05 TASK:2 -- finish
+Jul 2 23:59:06 TASK:1 debug: debug message.
+Jul 2 23:59:07 TASK:1 -- finish

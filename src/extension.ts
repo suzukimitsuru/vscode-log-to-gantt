@@ -4,6 +4,12 @@ import * as vscode from 'vscode';
 import { getWebviewContent } from './webview';
 import * as path from 'path';
 
+// The command has been defined in the package.json file
+// Now provide the implementation of the command with registerCommand
+// The commandId parameter must match the command field in package.json
+let panel: vscode.WebviewPanel | undefined;
+let panel_webview_is_loded = false;
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -12,46 +18,96 @@ export function activate(context: vscode.ExtensionContext) {
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "vscode-log-to-gantt" is now active!');
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let panel: vscode.WebviewPanel | undefined;
+	// エディタ切り替え時に.logファイルなら自動でコマンド実行
+	vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+		if (editor && editor.document && editor.document.languageId === 'log') {
+			if (panel) {
+				const filenode = path.basename(editor.document.fileName);
+				const content = editor.document.getText();
+				panel.title = `Gantt ${filenode}`;
+				panel.webview.postMessage({ command: 'update', filename: filenode, content: content });
+				console.debug(`onDidChangeActiveTextEditor: ${filenode}: ${content.length} bytes`);
+			}
+		}
+	});
+
+	// VSCodeのカラーテーマ変更時にWebviewへ通知
+	vscode.window.onDidChangeActiveColorTheme((e) => {
+		if (panel) {
+			panel.webview.postMessage({ command: 'theme', kind: e.kind });
+		}
+	});
+
+	// ファイル内容が変更された場合のリスナ
+	vscode.workspace.onDidChangeTextDocument((event) => {
+		const editor = vscode.window.activeTextEditor;
+		if (editor && editor.document === event.document && editor.document.languageId === 'log') {
+			if (panel) {
+				const filenode = require('path').basename(editor.document.fileName);
+				const content = editor.document.getText();
+				panel.title = `Gantt ${filenode}`;
+				panel.webview.postMessage({ command: 'update', filename: filenode, content: content });
+				console.debug(`onDidChangeTextDocument: ${filenode}: ${content.length} bytes`);
+			}
+		}
+	});
 
 	context.subscriptions.push(vscode.commands.registerCommand('vscode-log-to-gantt.showGantt', async (uri?: vscode.Uri) => {
-			let doc: vscode.TextDocument | undefined;
-			if (uri) {
-				// エクスプローラーから起動時
-				doc = await vscode.workspace.openTextDocument(uri);
-				await vscode.window.showTextDocument(doc, { preview: false });
-			} else {
-				// エディタから起動時
-				doc = vscode.window.activeTextEditor?.document;
-			}
-			if (doc) {
-				const filenode = path.basename(doc.fileName);
-				const theme = vscode.window.activeColorTheme.kind;
-				const content = doc.getText();
+		let doc = vscode.window.activeTextEditor?.document || null;
+		// エクスプローラーから起動
+		if (uri) {
+			// 開いていない場合、ログファイルを開く
+			doc = doc || await vscode.workspace.openTextDocument(uri);
+		}
+		if (doc) {
+			const filenode = path.basename(doc.fileName);
+			const content = doc.getText();
 
-				if (panel) {
-					panel.title = `Gantt ${filenode}`;
-					panel.webview.html = getWebviewContent(panel.webview, context.extensionUri, filenode, content, theme);
-					panel.reveal();
-				} else {
-					panel = vscode.window.createWebviewPanel(
-						'logToGantt',
-						`Gantt ${filenode}`,
-						vscode.ViewColumn.One,
-						{
-							enableScripts: true,
-							retainContextWhenHidden: true,
-						}
-					);
-					panel.webview.html = getWebviewContent(panel.webview, context.extensionUri, filenode, content, theme);
-					panel.onDidDispose(() => { panel = undefined; }, null, context.subscriptions);
-				}
+				// ganttパネルが開いている場合
+			if (panel) {
+				panel.title = `Gantt ${filenode}`;
+				panel.reveal();
+			} else {
+				panel = vscode.window.createWebviewPanel(
+					'logToGantt',
+					`Gantt ${filenode}`,
+					vscode.ViewColumn.One,
+					{
+						enableScripts: true,
+						retainContextWhenHidden: true,
+					}
+				);
+				panel.webview.html = getWebviewContent(panel.webview, context.extensionUri, vscode.window.activeColorTheme.kind);
+				
+				// パネルが閉じられたときの処理
+				panel.onDidDispose(() => { panel = undefined; }, null, context.subscriptions);
+
+				// メッセージ受信イベント
+				panel.webview.onDidReceiveMessage(async event => {
+					switch (event.command) {
+						case 'ready':
+							// Webviewが準備完了
+							panel?.webview.postMessage({ command: 'theme', kind: vscode.window.activeColorTheme.kind });
+							panel?.webview.postMessage({ command: 'update', filename: filenode, content: content });
+							console.debug(`ready: ${filenode}: ${content.length} bytes`);
+							panel_webview_is_loded = true;
+							break;
+						case 'debug':
+							console.debug('debug: ' + event.line);
+							break;
+						default:
+							break;
+					}
+				}, null, context.subscriptions);
 			}
-		})
-	);
+
+			// Webviewがロードされていたら、表示内容を更新
+			if (panel_webview_is_loded) {
+				panel.webview.postMessage({ command: 'theme', kind: vscode.window.activeColorTheme.kind });
+				panel.webview.postMessage({ command: 'update', filename: filenode, content: content });
+			}
+		}
+	}));
 }
 
 // This method is called when your extension is deactivated
