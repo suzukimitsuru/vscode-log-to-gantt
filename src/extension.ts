@@ -3,6 +3,7 @@
 import * as vscode from 'vscode';
 import { getWebviewContent } from './webview';
 import * as path from 'path';
+import * as fs from 'fs';
 
 // The command has been defined in the package.json file
 // Now provide the implementation of the command with registerCommand
@@ -13,6 +14,7 @@ let panel_webview_is_loded = false;
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+	const settingsPath = path.join(vscode.workspace.workspaceFolders?.[0].uri.fsPath || '', '.vscode', 'settings.json');
 
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
@@ -51,6 +53,30 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}
 	});
+	
+	function loadSearchSettings(path: string) {
+		try {
+			const json = fs.readFileSync(path, 'utf8');
+			const obj = JSON.parse(json);
+			return obj['logToGantt.search'] || {
+				section: 'TASK:[0-9]* ',
+				milestone: 'TASK:[0-9]* -- receive',
+				bar: 'TASK:[0-9]* -- (start|finish)',
+				name: '.*title: (.*)'
+			};
+		} catch {
+			return {};
+		}
+	}
+
+	function saveSearchSettings(path: string, settings: any) {
+		let obj: any = {};
+		try {
+			obj = JSON.parse(fs.readFileSync(path, 'utf8'));
+		} catch {}
+		obj['logToGantt.search'] = settings;
+		fs.writeFileSync(path, JSON.stringify(obj, null, 2));
+	}
 
 	context.subscriptions.push(vscode.commands.registerCommand('vscode-log-to-gantt.showGantt', async (uri?: vscode.Uri) => {
 		let doc = vscode.window.activeTextEditor?.document || null;
@@ -62,8 +88,9 @@ export function activate(context: vscode.ExtensionContext) {
 		if (doc) {
 			const filenode = path.basename(doc.fileName);
 			const content = doc.getText();
+			const settings = loadSearchSettings(settingsPath);
 
-				// ganttパネルが開いている場合
+			// ganttパネルが開いている場合
 			if (panel) {
 				panel.title = `Gantt ${filenode}`;
 				panel.reveal();
@@ -89,8 +116,13 @@ export function activate(context: vscode.ExtensionContext) {
 							// Webviewが準備完了
 							panel?.webview.postMessage({ command: 'theme', kind: vscode.window.activeColorTheme.kind });
 							panel?.webview.postMessage({ command: 'update', filename: filenode, content: content });
+							panel?.webview.postMessage({ command: 'settings', settings: settings });
 							console.debug(`ready: ${filenode}: ${content.length} bytes`);
 							panel_webview_is_loded = true;
+							break;
+						case 'save':
+							saveSearchSettings(settingsPath, event.settings);
+							console.debug('検索条件を保存しました');
 							break;
 						case 'debug':
 							console.debug('debug: ' + event.line);
@@ -105,6 +137,7 @@ export function activate(context: vscode.ExtensionContext) {
 			if (panel_webview_is_loded) {
 				panel.webview.postMessage({ command: 'theme', kind: vscode.window.activeColorTheme.kind });
 				panel.webview.postMessage({ command: 'update', filename: filenode, content: content });
+				panel.webview.postMessage({ command: 'settings', settings: settings });
 			}
 		}
 	}));

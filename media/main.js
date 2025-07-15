@@ -19,15 +19,26 @@ window.addEventListener("message", (event) => {
       const theme = (event.data.kind === 2 || event.data.kind === 3) ? 'dark' : 'default';
       mermaid.initialize({ startOnLoad: false, theme });
       break;
+    case 'settings':
+      // 検索設定を受け取る
+      document.getElementById('regexp-section').value = event.data.settings.section;
+      document.getElementById('regexp-milestone').value = event.data.settings.milestone;
+      document.getElementById('regexp-bar').value = event.data.settings.bar;
+      document.getElementById('regexp-name').value = event.data.settings.name;
+      break;
   }
 });
 vscode.postMessage({ command: 'ready' });
 
 document.getElementById('search').onclick = async () => {
-  const sectionRe = new RegExp(document.getElementById('regexp-section').value, 'i');
-  const milestoneRe = new RegExp(document.getElementById('regexp-milestone').value, 'i');
-  const barRe = new RegExp(document.getElementById('regexp-bar').value, 'i');
-  const nameRe = new RegExp(document.getElementById('regexp-name').value, 'i');
+  const sectionValue = document.getElementById('regexp-section').value;
+  const milestoneValue = document.getElementById('regexp-milestone').value;
+  const barValue = document.getElementById('regexp-bar').value;
+  const nameValue = document.getElementById('regexp-name').value;
+  const sectionRe = new RegExp(sectionValue, 'i');
+  const milestoneRe = new RegExp(milestoneValue, 'i');
+  const barRe = new RegExp(barValue, 'i');
+  const nameRe = new RegExp(nameValue, 'i');
 
   const lines = logContent.split(/\r?\n/);
   vscode.postMessage({ command: 'debug', line: 'search: ' + logContent.length + ' bytes' });
@@ -110,6 +121,10 @@ document.getElementById('search').onclick = async () => {
     errorEl.textContent = '';
     newChartEl.textContent = chart;
     await mermaid.run({ nodes: [newChartEl] });
+    vscode.postMessage({
+      command: 'save',
+      settings: { section: sectionValue, milestone: milestoneValue, bar: barValue, name: nameValue } 
+    });
   } catch (err) {
     errorEl.textContent = `Mermaid Syntax error:\n${err.message || String(err)}`;
   }
