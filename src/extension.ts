@@ -54,30 +54,44 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 	
-	function loadSearchSettings(path: string) {
+	// 検索条件を読み込む
+	function loadSearchSettings(filename: string) {
+		const default_settings = {
+			section: 'TASK:[0-9]* ',
+			milestone: 'TASK:[0-9]* -- receive',
+			bar: 'TASK:[0-9]* -- (start|finish)',
+			name: '.*title: (.*)'
+		};
 		try {
-			const json = fs.readFileSync(path, 'utf8');
+			// 設定ファイルを読み込む
+			const json = fs.readFileSync(filename, 'utf8');
 			const obj = JSON.parse(json);
-			return obj['logToGantt.search'] || {
-				section: 'TASK:[0-9]* ',
-				milestone: 'TASK:[0-9]* -- receive',
-				bar: 'TASK:[0-9]* -- (start|finish)',
-				name: '.*title: (.*)'
-			};
+
+			// 設定が存在しない場合はデフォルト値を返す
+			return obj['logToGantt.search'] || default_settings;
 		} catch {
-			return {};
+			return default_settings;
 		}
 	}
 
-	function saveSearchSettings(path: string, settings: any) {
+	// 検索条件を保存する
+	function saveSearchSettings(filename: string, settings: any) {
 		let obj: any = {};
 		try {
-			obj = JSON.parse(fs.readFileSync(path, 'utf8'));
+			// ディレクトリが存在しない場合は作成
+			if (!fs.existsSync(path.dirname(filename))) {
+				fs.mkdirSync(path.dirname(filename), { recursive: true });
+			}
+			// 既存の設定を読み込む
+			obj = JSON.parse(fs.readFileSync(filename, 'utf8'));
 		} catch {}
+
+		// 新しい設定を保存
 		obj['logToGantt.search'] = settings;
-		fs.writeFileSync(path, JSON.stringify(obj, null, 2));
+		fs.writeFileSync(filename, JSON.stringify(obj, null, 2));
 	}
 
+	// Gantt表示コマンドの登録
 	context.subscriptions.push(vscode.commands.registerCommand('vscode-log-to-gantt.showGantt', async (uri?: vscode.Uri) => {
 		let doc = vscode.window.activeTextEditor?.document || null;
 		// エクスプローラーから起動
