@@ -16,10 +16,10 @@ export function getWebviewContent(webview: Webview, extensionUri: Uri, theme: nu
 </head>
 <body>
   <div class="controls">
-    <label>section: <input type="text" id="regexp-section" value="TASK:[0-9]* "></label>
-    <label>milestone: <input type="text" id="regexp-milestone" value="TASK:[0-9]* -- receive"></label>
-    <label>bar: <input type="text" id="regexp-bar" value="TASK:[0-9]* -- (start|finish)"></label>
-    <label>name: <input type="text" id="regexp-name" value=".*title: (.*)"></label>
+    <label>section: <input type="text" id="regexp-section" value=""></label>
+    <label>milestone: <input type="text" id="regexp-milestone" value=""></label>
+    <label>bar: <input type="text" id="regexp-bar" value=""></label>
+    <label>name: <input type="text" id="regexp-name" value=""></label>
     <button id="search" title="Search"><span class="codicon codicon-search"></span></button>
     <button id="copy" title="Copy"><span class="codicon codicon-copy"></button>
   </div>

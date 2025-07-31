@@ -13,8 +13,8 @@
 - a) ログファイルを右クリックし、メニューの'Log to Gantt'を選択する。
 - b) 検索条件を入力して、検索ボタンを押す。
   - section: セクション名を検索する正規表現を入力 例) 'TASK:[0-9]* '
-  - milestone: マイルストーンの行を検索する正規表現を入力 例) 'TASK:[0-9]* -- receive'
-  - bar: バーの処理行を検索する正規表現を入力 例) 'TASK:[0-9]* -- (start|finish)'
+  - milestone: マイルストーンの行を検索する正規表現を入力 例) '-- receive'
+  - bar: バーの処理行を検索する正規表現を入力 例) '-- (start|finish)'
   - name: バーの名前を検索する正規表現を入力(表示する場所を括弧で囲う) 例) '.*title: (.*)'
 - c) 神作ボタンを押すと、ガントチャートチャートをレンダリングして表示する。
 - d) コピーボタンを押すと、ガントチャートチャートをテキストで、クリップボードにコピーする。
@@ -56,6 +56,10 @@ gantt
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
 ### [Unreleased]
+
+### 1.1.２ - 2025-07-31
+
+- Fixed - 検索条件を省略した場合、省略した条件を検索しないだけにする
 
 ### 1.1.1 - 2025-07-16
 

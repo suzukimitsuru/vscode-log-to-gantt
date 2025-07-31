@@ -35,10 +35,10 @@ document.getElementById('search').onclick = async () => {
   const milestoneValue = document.getElementById('regexp-milestone').value;
   const barValue = document.getElementById('regexp-bar').value;
   const nameValue = document.getElementById('regexp-name').value;
-  const sectionRe = new RegExp(sectionValue, 'i');
-  const milestoneRe = new RegExp(milestoneValue, 'i');
-  const barRe = new RegExp(barValue, 'i');
-  const nameRe = new RegExp(nameValue, 'i');
+  const sectionRe = new RegExp(sectionValue.length > 0 ? sectionValue : '(?!)', 'i');
+  const milestoneRe = new RegExp(milestoneValue.length > 0 ? milestoneValue : '(?!)', 'i');
+  const barRe = new RegExp(barValue.length > 0 ? barValue : '(?!)', 'i');
+  const nameRe = new RegExp(nameValue.length > 0 ? nameValue : '(?!)', 'i');
 
   const lines = logContent.split(/\r?\n/);
   vscode.postMessage({ command: 'debug', line: 'search: ' + logContent.length + ' bytes' });

@@ -58,8 +58,8 @@ export function activate(context: vscode.ExtensionContext) {
 	function loadSearchSettings(filename: string) {
 		const default_settings = {
 			section: 'TASK:[0-9]* ',
-			milestone: 'TASK:[0-9]* -- receive',
-			bar: 'TASK:[0-9]* -- (start|finish)',
+			milestone: '-- receive',
+			bar: '-- (start|finish)',
 			name: '.*title: (.*)'
 		};
 		try {
